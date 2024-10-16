@@ -16,7 +16,7 @@ class Dormint:
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'no-cache',
-            'Host': 'api.dormint.io',
+            'Host': 'api-new.dormint.io',
             'Origin': 'https://web.dormint.io',
             'Pragma': 'no-cache',
             'Referer': 'https://web.dormint.io/',
@@ -80,7 +80,7 @@ class Dormint:
                 continue
 
             if account not in existing_accounts:
-                url = f'https://api.dormint.io/api/auth/telegram/verify?{query}'
+                url = f'https://api-new.dormint.io/api/auth/telegram/verify?{query}'
                 self.headers.update({'Content-Type': 'application/json'})
                 try:
                     response = self.session.get(url, headers=self.headers)
@@ -102,7 +102,7 @@ class Dormint:
                     json.dump({"accounts": tokens}, f, indent=4)
         
     def farming_status(self, token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/farming/status'
+        url = 'https://api-new.dormint.io/tg/farming/status'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -132,7 +132,7 @@ class Dormint:
                     return None
         
     def start_farming(self, token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/farming/start'
+        url = 'https://api-new.dormint.io/tg/farming/start'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -162,7 +162,7 @@ class Dormint:
                     return None
         
     def claim_farming(self, token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/farming/claimed'
+        url = 'https://api-new.dormint.io/tg/farming/claimed'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -192,7 +192,7 @@ class Dormint:
                     return None
         
     def invited_frens(self, token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/frens/invited'
+        url = 'https://api-new.dormint.io/tg/frens/invited'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -222,7 +222,7 @@ class Dormint:
                     return None
         
     def claim_frens(self, token: str, claim_token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/frens/claimed'
+        url = 'https://api-new.dormint.io/tg/frens/claimed'
         data = json.dumps({'auth_token': token, 'claim_token': claim_token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -252,7 +252,7 @@ class Dormint:
                     return None
         
     def quests_list(self, token: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/quests/list'
+        url = 'https://api-new.dormint.io/tg/quests/list'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -282,7 +282,7 @@ class Dormint:
                     return None
     
     def start_quests(self, token: str, quest_id: str, retries=5, delay=3):
-        url = 'https://api.dormint.io/tg/quests/start'
+        url = 'https://api-new.dormint.io/tg/quests/start'
         data = json.dumps({'auth_token': token, 'quest_id': quest_id})
         self.headers.update({
             'Content-Type': 'application/json'
