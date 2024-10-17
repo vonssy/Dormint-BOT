@@ -51,56 +51,47 @@ class Dormint:
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-    def generate_tokens(self):
-        try:
-            with open('query.txt', 'r') as file:
-                queries = [line.strip() for line in file if line.strip()]
-        except FileNotFoundError:
-            print("query.txt not found!")
-            return
+    def load_data(self, query: str):
+        query_params = urllib.parse.parse_qs(query)
+        query = query_params.get('user', [None])[0]
 
-        if os.path.exists('tokens.json'):
-            with open('tokens.json', 'r') as f:
-                data = json.load(f)
-                tokens = data.get('accounts', [])
+        if query:
+            user_data_json = urllib.parse.unquote(query)
+            user_data = json.loads(user_data_json)
+            first_name = user_data['first_name']
+            return first_name
         else:
-            tokens = []
-
-        existing_accounts = {account['first_name'] for account in tokens}
-
-        for query in queries:
-            query_params = urllib.parse.parse_qs(query)
-            user_data_json = urllib.parse.unquote(query_params.get('user', [None])[0])
-
-            if user_data_json:
-                user_data = json.loads(user_data_json)
-                account = user_data['first_name']
-            else:
-                self.log("User data not found in query.")
-                continue
-
-            if account not in existing_accounts:
-                url = f'https://api-new.dormint.io/api/auth/telegram/verify?{query}'
-                self.headers.update({'Content-Type': 'application/json'})
-                try:
-                    response = self.session.get(url, headers=self.headers)
-                    if response.status_code == 200:
-                        token = response.text.strip('"')
-                    else:
-                        self.log(f"Failed to generate token for {account}")
-                        continue
-                except (requests.RequestException, ValueError) as e:
-                    print(f"Error generating token: {e}")
-                    continue
-
-                tokens.append({
-                    "first_name": account,
-                    "token": token
-                })
-
-                with open('tokens.json', 'w') as f:
-                    json.dump({"accounts": tokens}, f, indent=4)
+            raise ValueError("User data not found in query.")
         
+    def auth(self, query: str, retries=5, delay=3):
+        url = f'https://api-new.dormint.io/api/auth/telegram/verify?{query}'
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.get(url, headers=self.headers)
+                if response.status_code == 200:
+                    result = response.text.strip('"')
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+                
     def farming_status(self, token: str, retries=5, delay=3):
         url = 'https://api-new.dormint.io/tg/farming/status'
         data = json.dumps({'auth_token': token})
@@ -311,23 +302,21 @@ class Dormint:
                 else:
                     return None
     
-    def process_query(self, account):
-        if os.path.exists('tokens.json'):
-            with open('tokens.json', 'r') as f:
-                data = json.load(f)
-                tokens = data.get('accounts', [])
-        else:
-            tokens = []
+    def process_query(self, query: str):
 
-        account_token = None
-        
-        for token_data in tokens:
-            if token_data['first_name'] == account:
-                account_token = token_data['token']
-                break
+        account = self.load_data(query)
 
-        if account_token:
-            farming = self.farming_status(account_token)
+        token = self.auth(query)
+        if not token or token is None:
+            self.log(
+                f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {account} {Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT}]{Style.RESET_ALL}"
+                f"{Fore.RED + Style.BRIGHT} [ Token is None ] {Style.RESET_ALL}"
+            )
+
+        if token:
+            farming = self.farming_status(token)
             if farming:
                 self.log(
                     f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
@@ -337,14 +326,14 @@ class Dormint:
                     f"{Fore.MAGENTA + Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}                          "
                 )
 
-                frens = self.invited_frens(account_token)
+                frens = self.invited_frens(token)
                 if frens:
                     for fren in frens:
                         if fren:
                             claim_token = fren['claim_secret']
 
                             if fren['balance'] != 0:
-                                claim = self.claim_frens(account_token, claim_token)
+                                claim = self.claim_frens(token, claim_token)
                                 if claim:
                                     self.log(
                                         f"{Fore.MAGENTA+Style.BRIGHT}[ Frens{Style.RESET_ALL}"
@@ -365,7 +354,7 @@ class Dormint:
                 farming_left_seconds = float(farming_left)
                 farming_end_time = datetime.now().astimezone(wib) + timedelta(seconds=farming_left_seconds)
 
-                claim = self.claim_farming(account_token)
+                claim = self.claim_farming(token)
                 if claim:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
@@ -383,7 +372,7 @@ class Dormint:
                         f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}                          "
                     )
 
-                start = self.start_farming(account_token)
+                start = self.start_farming(token)
                 if start:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
@@ -400,7 +389,7 @@ class Dormint:
             else:
                 self.log(f"{Fore.RED+Style.BRIGHT}[ Failed to Get Farming Status ]{Style.RESET_ALL}                          ")
 
-            quests = self.quests_list(account_token)
+            quests = self.quests_list(token)
             if quests:
                 for quest in quests:
 
@@ -409,7 +398,7 @@ class Dormint:
                         title = quest['name']
                         reward = quest['reward']
 
-                        start = self.start_quests(account_token, quest_id)
+                        start = self.start_quests(token, quest_id)
                         if start:
                             self.log(
                                 f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
@@ -426,7 +415,7 @@ class Dormint:
                                 f"{Fore.RED+Style.BRIGHT}Failed{Style.RESET_ALL}"
                                 f"{Fore.MAGENTA+Style.BRIGHT} ]{Style.RESET_ALL}                          "
                             )
-                        quests = self.quests_list(account_token)
+                        quests = self.quests_list(token)
             else:
                 self.log(f"{Fore.RED+Style.BRIGHT}[ Failed to Get Quests List ]{Style.RESET_ALL}                          ")
 
@@ -435,34 +424,33 @@ class Dormint:
 
 
     def main(self):
-        self.generate_tokens()
         try:
-            accounts = set()
-            if os.path.exists('tokens.json'):
-                with open('tokens.json', 'r') as f:
-                    data = json.load(f)
-                    accounts = [account['first_name'] for account in data.get('accounts', [])]
+            with open('query.txt', 'r') as file:
+                queries = [line.strip() for line in file if line.strip()]
 
             while True:
                 self.clear_terminal()
                 self.welcome()
                 self.log(
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT}{len(queries)}{Style.RESET_ALL}"
                 )
                 self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
 
-                for account in accounts:
-                    self.process_query(account)
-                    self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
+                for query in queries:
+                    query = query.strip()
+                    if query:
+                        self.process_query(query)
+                        self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
+                        time.sleep(5)
 
                 seconds = 1800
                 while seconds > 0:
                     formatted_time = self.format_seconds(seconds)
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
-                        f"{Fore.CYAN + Style.BRIGHT}... ]{Style.RESET_ALL}",
+                        f"{Fore.CYAN+Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
+                        f"{Fore.CYAN+Style.BRIGHT}... ]{Style.RESET_ALL}",
                         end="\r"
                     )
                     time.sleep(1)
