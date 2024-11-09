@@ -8,6 +8,7 @@ Register Here : [Dormint](https://t.me/dormint_bot/dormint_bot?startapp=ref_R3X2
   - Auto Get Account Information
   - Auto Claim Refferal Reward
   - Auto Start and Claim Mining
+  - Auto Buy and Open Lootboxes
   - Auto Complete Task
   - Multi Account
 

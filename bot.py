@@ -58,13 +58,13 @@ class Dormint:
         if query:
             user_data_json = urllib.parse.unquote(query)
             user_data = json.loads(user_data_json)
-            first_name = user_data['first_name']
+            first_name = user_data.get('first_name', 'Unknown')
             return first_name
         else:
             raise ValueError("User data not found in query.")
         
     def auth(self, query: str, retries=5, delay=3):
-        url = f'https://api-new.dormint.io/api/auth/telegram/verify?{query}'
+        url = f'https://gate.api-dormint.com/api/auth/telegram/verify?{query}'
         self.headers.update({
             'Content-Type': 'application/json'
         })
@@ -80,9 +80,35 @@ class Dormint:
             except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
                 if attempt < retries - 1:
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+        
+    def farming_status(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/farming/status'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
                         end="\r",
@@ -92,98 +118,8 @@ class Dormint:
                 else:
                     return None
                 
-    def farming_status(self, token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/farming/status'
-        data = json.dumps({'auth_token': token})
-        self.headers.update({
-            'Content-Type': 'application/json'
-        })
-
-        for attempt in range(retries):
-            try:
-                response = self.session.post(url, headers=self.headers, data=data)
-                result = response.json()
-                if result['status'] == 'ok':
-                    return result
-                else:
-                    return None
-            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
-                if attempt < retries - 1:
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
-                    time.sleep(delay)
-                else:
-                    return None
-        
-    def start_farming(self, token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/farming/start'
-        data = json.dumps({'auth_token': token})
-        self.headers.update({
-            'Content-Type': 'application/json'
-        })
-
-        for attempt in range(retries):
-            try:
-                response = self.session.post(url, headers=self.headers, data=data)
-                result = response.json()
-                if result['status'] == 'ok':
-                    return result
-                else:
-                    return None
-            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
-                if attempt < retries - 1:
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
-                    time.sleep(delay)
-                else:
-                    return None
-        
-    def claim_farming(self, token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/farming/claimed'
-        data = json.dumps({'auth_token': token})
-        self.headers.update({
-            'Content-Type': 'application/json'
-        })
-
-        for attempt in range(retries):
-            try:
-                response = self.session.post(url, headers=self.headers, data=data)
-                result = response.json()
-                if result['status'] == 'ok':
-                    return result
-                else:
-                    return None
-            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
-                if attempt < retries - 1:
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
-                    time.sleep(delay)
-                else:
-                    return None
-        
     def invited_frens(self, token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/frens/invited'
+        url = 'https://gate.api-dormint.com/tg/frens/invited'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -200,9 +136,7 @@ class Dormint:
             except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
                 if attempt < retries - 1:
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
                         end="\r",
@@ -213,7 +147,7 @@ class Dormint:
                     return None
         
     def claim_frens(self, token: str, claim_token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/frens/claimed'
+        url = 'https://gate.api-dormint.com/tg/frens/claimed'
         data = json.dumps({'auth_token': token, 'claim_token': claim_token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -230,9 +164,147 @@ class Dormint:
             except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
                 if attempt < retries - 1:
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+        
+    def start_farming(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/farming/start'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+        
+    def claim_farming(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/farming/claimed'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+                
+    def lootboxes_status(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/lootboxes/status'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+                
+    def buy_lootboxes(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/lootboxes/buy/sleepcoins'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+                
+    def open_lootboxes(self, token: str, retries=5, delay=3):
+        url = 'https://gate.api-dormint.com/tg/lootboxes/open'
+        data = json.dumps({'auth_token': token})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result['lootboxPrize']
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
                         end="\r",
@@ -243,7 +315,7 @@ class Dormint:
                     return None
         
     def quests_list(self, token: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/quests/list'
+        url = 'https://gate.api-dormint.com/tg/quests/list'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -260,9 +332,7 @@ class Dormint:
             except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
                 if attempt < retries - 1:
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
                         end="\r",
@@ -273,7 +343,7 @@ class Dormint:
                     return None
     
     def start_quests(self, token: str, quest_id: str, retries=5, delay=3):
-        url = 'https://api-new.dormint.io/tg/quests/start'
+        url = 'https://gate.api-dormint.com/tg/quests/start'
         data = json.dumps({'auth_token': token, 'quest_id': quest_id})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -290,9 +360,7 @@ class Dormint:
             except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
                 if attempt < retries - 1:
                     print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ HTTP ERROR ]{Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
                         end="\r",
@@ -307,23 +375,32 @@ class Dormint:
         account = self.load_data(query)
 
         token = self.auth(query)
-        if not token or token is None:
+        if not token:
             self.log(
                 f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
                 f"{Fore.WHITE + Style.BRIGHT} {account} {Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT}]{Style.RESET_ALL}"
-                f"{Fore.RED + Style.BRIGHT} [ Token is None ] {Style.RESET_ALL}"
+                f"{Fore.RED + Style.BRIGHT}Token Is None{Style.RESET_ALL}"
+                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
             )
+            return
 
         if token:
             farming = self.farming_status(token)
+            if not farming:
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}[ Farming{Style.RESET_ALL}"
+                    f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                )
+                return
+            
             if farming:
                 self.log(
                     f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT} {account} {Style.RESET_ALL}"
                     f"{Fore.MAGENTA + Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT} {farming['sleepcoin_balance']:.1f} {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}                          "
+                    f"{Fore.MAGENTA + Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}"
                 )
 
                 frens = self.invited_frens(token)
@@ -338,16 +415,16 @@ class Dormint:
                                     self.log(
                                         f"{Fore.MAGENTA+Style.BRIGHT}[ Frens{Style.RESET_ALL}"
                                         f"{Fore.WHITE+Style.BRIGHT} {fren['name']} {Style.RESET_ALL}"
-                                        f"{Fore.GREEN+Style.BRIGHT}Claimed{Style.RESET_ALL}"
+                                        f"{Fore.GREEN+Style.BRIGHT}IS Claimed{Style.RESET_ALL}"
                                         f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
                                         f"{Fore.WHITE+Style.BRIGHT} {fren['balance']:.1f} {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}                          "
+                                        f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}"
                                     )
                                 else:
                                     self.log(
                                         f"{Fore.MAGENTA+Style.BRIGHT}[ Frens{Style.RESET_ALL}"
-                                        f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}                          "
+                                        f"{Fore.RED+Style.BRIGHT} Isn't Claimed {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                                     )
 
                 farming_left = farming['farming_left']
@@ -358,70 +435,142 @@ class Dormint:
                 if claim:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
-                        f"{Fore.GREEN+Style.BRIGHT} Claimed{Style.RESET_ALL}"
+                        f"{Fore.GREEN+Style.BRIGHT} Is Claimed{Style.RESET_ALL}"
                         f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
                         f"{Fore.WHITE+Style.BRIGHT} {farming['farming_value']:.1f} {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}                          "
+                        f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}"
                     )
                 else:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
-                        f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
+                        f"{Fore.YELLOW+Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
                         f"{Fore.MAGENTA+Style.BRIGHT}] [ Next Claim at{Style.RESET_ALL}"
                         f"{Fore.WHITE+Style.BRIGHT} {farming_end_time.strftime('%x %X %Z')} {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}                          "
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                     )
 
                 start = self.start_farming(token)
                 if start:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
-                        f"{Fore.GREEN+Style.BRIGHT} Started{Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}                          "
+                        f"{Fore.GREEN+Style.BRIGHT} Is Started{Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                     )
                 else:
                     self.log(
                         f"{Fore.MAGENTA+Style.BRIGHT}[ Farming{Style.RESET_ALL}"
-                        f"{Fore.YELLOW+Style.BRIGHT} Already Started {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}                          "
+                        f"{Fore.YELLOW+Style.BRIGHT} Is Already Started {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                     )
-         
-            else:
-                self.log(f"{Fore.RED+Style.BRIGHT}[ Failed to Get Farming Status ]{Style.RESET_ALL}                          ")
 
-            quests = self.quests_list(token)
-            if quests:
-                for quest in quests:
+                lootboxes = self.lootboxes_status(token)
+                if lootboxes:
+                    balance = lootboxes['sleepcoinBalance']
+                    price = 500
+                    lootboxes_count = lootboxes['lootboxCount']
+                    lootboxes_left = lootboxes['lootboxBySleepcoinsLeft']
 
-                    if quest['status'] == 'quest_not_completed':
-                        quest_id = quest['quest_id']
-                        title = quest['name']
-                        reward = quest['reward']
+                    self.log(
+                        f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} Have {lootboxes_count} {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}] [ Can Buy{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} {lootboxes_left} {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
 
-                        start = self.start_quests(token, quest_id)
-                        if start:
+                    if balance >= price:
+                        while lootboxes_left > 0:
+                            buy = self.buy_lootboxes(token)
+                            if buy:
+                                balance = buy['sleepcoinBalance']
+                                self.log(
+                                    f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                                    f"{Fore.GREEN+Style.BRIGHT} Was Successfully Purchased{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA+Style.BRIGHT}] [ You Have{Style.RESET_ALL}"
+                                    f"{Fore.WHITE+Style.BRIGHT} {buy['lootboxCount']} Lootboxes {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                                )
+                            else:
+                                break
+
+                        if lootboxes_left == 0:
                             self.log(
-                                f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
-                                f"{Fore.WHITE+Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.GREEN+Style.BRIGHT}Completed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA+Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
-                                f"{Fore.WHITE+Style.BRIGHT} {reward} {Style.RESET_ALL}"
-                                f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                                f"{Fore.YELLOW+Style.BRIGHT} Not Available For Purchase {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
+
+                    else:
+                        self.log(
+                            f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                            f"{Fore.YELLOW+Style.BRIGHT} Not Enough Sleepcoins For Purchase {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                        )
+
+                    lootboxes_count = self.lootboxes_status(token)['lootboxCount']
+                    while lootboxes_count > 0:
+                        open = self.open_lootboxes(token)
+                        if open:
+                            lootboxes_count = self.lootboxes_status(token)['lootboxCount']
+                            self.log(
+                                f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                                f"{Fore.GREEN+Style.BRIGHT} Is Opened {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
+                                f"{Fore.WHITE+Style.BRIGHT} {open['amount']} {open['prize_type']} {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}] [ You Have{Style.RESET_ALL}"
+                                f"{Fore.WHITE+Style.BRIGHT} {lootboxes_count} Left {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                             )
                         else:
-                            self.log(
-                                f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
-                                f"{Fore.WHITE+Style.BRIGHT} {title} {Style.RESET_ALL}"
-                                f"{Fore.RED+Style.BRIGHT}Failed{Style.RESET_ALL}"
-                                f"{Fore.MAGENTA+Style.BRIGHT} ]{Style.RESET_ALL}                          "
-                            )
-                        quests = self.quests_list(token)
-            else:
-                self.log(f"{Fore.RED+Style.BRIGHT}[ Failed to Get Quests List ]{Style.RESET_ALL}                          ")
+                            break
 
-        else:
-            self.log(f"{Fore.RED+Style.BRIGHT}[ No token found for account: {account} ]{Style.RESET_ALL}                          ")
+                    if lootboxes_count == 0:
+                        self.log(
+                            f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                            f"{Fore.YELLOW+Style.BRIGHT} Not Available For Open {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                        )
 
+                else:
+                    self.log(
+                        f"{Fore.MAGENTA+Style.BRIGHT}[ Lootboxes{Style.RESET_ALL}"
+                        f"{Fore.YELLOW+Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
+
+                quests = self.quests_list(token)
+                if quests:
+                    for quest in quests:
+
+                        if quest['status'] == 'quest_not_completed':
+                            quest_id = quest['quest_id']
+                            title = quest['name']
+                            reward = quest['reward']
+
+                            start = self.start_quests(token, quest_id)
+                            if start:
+                                self.log(
+                                    f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
+                                    f"{Fore.WHITE+Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                    f"{Fore.GREEN+Style.BRIGHT}Is Completed{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA+Style.BRIGHT} ] [ Reward{Style.RESET_ALL}"
+                                    f"{Fore.WHITE+Style.BRIGHT} {reward} {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA+Style.BRIGHT}Sleep Coins ]{Style.RESET_ALL}"
+                                )
+                            else:
+                                self.log(
+                                    f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
+                                    f"{Fore.WHITE+Style.BRIGHT} {title} {Style.RESET_ALL}"
+                                    f"{Fore.RED+Style.BRIGHT}Isn't Completed{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA+Style.BRIGHT} ]{Style.RESET_ALL}"
+                                )
+                            quests = self.quests_list(token)
+                else:
+                    self.log(
+                        f"{Fore.MAGENTA+Style.BRIGHT}[ Quest{Style.RESET_ALL}"
+                        f"{Fore.RED+Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
 
     def main(self):
         try:
@@ -435,14 +584,14 @@ class Dormint:
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(queries)}{Style.RESET_ALL}"
                 )
-                self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
+                self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
 
                 for query in queries:
                     query = query.strip()
                     if query:
                         self.process_query(query)
-                        self.log(f"{Fore.CYAN + Style.BRIGHT}-----------------------------------------------------------------------{Style.RESET_ALL}")
-                        time.sleep(5)
+                        self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
+                        time.sleep(3)
 
                 seconds = 1800
                 while seconds > 0:
