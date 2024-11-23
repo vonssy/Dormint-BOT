@@ -1,5 +1,8 @@
 import requests
 import json
+import hashlib
+import base64
+import uuid
 import os
 from urllib.parse import parse_qs, unquote
 from colorama import *
@@ -16,7 +19,7 @@ class Dormint:
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'no-cache',
-            'Host': 'gate.api-dormint.com',
+            'Host': 'api-new.dormint.io',
             'Origin': 'https://web.dormint.io',
             'Pragma': 'no-cache',
             'Referer': 'https://web.dormint.io/',
@@ -50,6 +53,14 @@ class Dormint:
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+    
+    def uuidv4(self):
+        return str(uuid.uuid4())
+    
+    def ads_token(self, ads_token: str):
+        hash_sha512 = hashlib.sha512(ads_token.encode()).digest()
+        hash_base64 = base64.b64encode(hash_sha512).decode()
+        return hash_base64
     
     def extract_user_data(self, query: str) -> str:
         parsed_query = parse_qs(query)
@@ -186,7 +197,7 @@ class Dormint:
             return [line.strip() for line in file if line.strip()]
         
     def auth(self, query: str, retries=5, delay=3):
-        url = f'https://gate.api-dormint.com/api/auth/telegram/verify?{query}'
+        url = f'https://api-new.dormint.io/api/auth/telegram/verify?{query}'
         self.headers.update({
             'Content-Type': 'application/json'
         })
@@ -213,7 +224,7 @@ class Dormint:
                     return None
         
     def farming_status(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/farming/status'
+        url = 'https://api-new.dormint.io/tg/farming/status'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -241,7 +252,7 @@ class Dormint:
                     return None
                 
     def invited_frens(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/frens/invited'
+        url = 'https://api-new.dormint.io/tg/frens/invited'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -269,7 +280,7 @@ class Dormint:
                     return None
         
     def claim_frens(self, token: str, claim_token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/frens/claimed'
+        url = 'https://api-new.dormint.io/tg/frens/claimed'
         data = json.dumps({'auth_token': token, 'claim_token': claim_token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -297,7 +308,7 @@ class Dormint:
                     return None
         
     def start_farming(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/farming/start'
+        url = 'https://api-new.dormint.io/tg/farming/start'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -325,7 +336,7 @@ class Dormint:
                     return None
         
     def claim_farming(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/farming/claimed'
+        url = 'https://api-new.dormint.io/tg/farming/claimed'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -353,7 +364,7 @@ class Dormint:
                     return None
                 
     def lootboxes_status(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/lootboxes/status'
+        url = 'https://api-new.dormint.io/tg/lootboxes/status'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -381,7 +392,7 @@ class Dormint:
                     return None
                 
     def buy_lootboxes(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/lootboxes/buy/sleepcoins'
+        url = 'https://api-new.dormint.io/tg/lootboxes/buy/sleepcoins'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -409,7 +420,7 @@ class Dormint:
                     return None
                 
     def open_lootboxes(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/lootboxes/open'
+        url = 'https://api-new.dormint.io/tg/lootboxes/open'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -435,9 +446,65 @@ class Dormint:
                     time.sleep(delay)
                 else:
                     return None
+                
+    def watch_ads(self, token: str, retries=5, delay=3):
+        url = 'https://api-new.dormint.io/tg/ads/start'
+        data = json.dumps({'auth_token': token, 'uuid':self.uuidv4()})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result['adsToken']
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
+                
+    def submit_ads(self, token: str, ads_token: str,  retries=5, delay=3):
+        url = 'https://api-new.dormint.io/tg/ads/submit'
+        data = json.dumps({'auth_token': token, 'ads_token':self.ads_token(ads_token)})
+        self.headers.update({
+            'Content-Type': 'application/json'
+        })
+
+        for attempt in range(retries):
+            try:
+                response = self.session.post(url, headers=self.headers, data=data)
+                result = response.json()
+                if result['status'] == 'ok':
+                    return result
+                else:
+                    return None
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                if attempt < retries - 1:
+                    print(
+                        f"{Fore.RED + Style.BRIGHT}HTTP ERROR{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}[{attempt + 1}/{retries}]{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+                    time.sleep(delay)
+                else:
+                    return None
         
     def quests_list(self, token: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/quests/list'
+        url = 'https://api-new.dormint.io/tg/quests/list'
         data = json.dumps({'auth_token': token})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -465,7 +532,7 @@ class Dormint:
                     return None
     
     def start_quests(self, token: str, quest_id: str, retries=5, delay=3):
-        url = 'https://gate.api-dormint.com/tg/quests/start'
+        url = 'https://api-new.dormint.io/tg/quests/start'
         data = json.dumps({'auth_token': token, 'quest_id': quest_id})
         self.headers.update({
             'Content-Type': 'application/json'
@@ -664,6 +731,29 @@ class Dormint:
                         f"{Fore.YELLOW+Style.BRIGHT} Data Is None {Style.RESET_ALL}"
                         f"{Fore.MAGENTA+Style.BRIGHT}]{Style.RESET_ALL}"
                     )
+
+                while True:
+                    ads_token = self.watch_ads(new_token if 'new_token' in locals() else token)
+                    if not ads_token:
+                        self.log(
+                            f"{Fore.MAGENTA + Style.BRIGHT}[ Watch Ads{Style.RESET_ALL}"
+                            f"{Fore.YELLOW + Style.BRIGHT} Isn't Started {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} Not Available {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                        )
+                        break
+
+                    if ads_token:
+                        submit = self.submit_ads(new_token if 'new_token' in locals() else token, ads_token)
+                        if submit:
+                            self.log(
+                                f"{Fore.MAGENTA + Style.BRIGHT}[ Watch Ads{Style.RESET_ALL}"
+                                f"{Fore.GREEN + Style.BRIGHT} Is Success {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT}] [ Reward{Style.RESET_ALL}"
+                                f"{Fore.WHITE + Style.BRIGHT} 50 Sleep Coins {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
 
                 quests = self.quests_list(new_token if 'new_token' in locals() else token)
                 if quests:
